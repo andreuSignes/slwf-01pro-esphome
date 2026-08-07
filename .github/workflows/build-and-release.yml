@@ -1,0 +1,75 @@
+name: Build and Release ESPHome Firmware
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.yaml"
+      - ".github/workflows/build-and-release.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to create (e.g. v1.0.0). Leave empty to auto-generate."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install ESPHome
+        run: pip install esphome
+
+      - name: Compile all firmware configs
+        run: |
+          mkdir -p artifacts
+          for config in *.yaml; do
+            echo "=== Compiling $config ==="
+            name=$(basename "$config" .yaml)
+
+            # Clear previous build output so we can unambiguously find
+            # this config's binary afterwards, even if two configs
+            # happen to share the same device "name" substitution.
+            rm -rf .esphome/build
+
+            esphome compile "$config"
+
+            bin_path=$(find .esphome/build -type f \( -iname "firmware.bin" -o -iname "firmware.factory.bin" \) | head -n 1)
+
+            if [ -z "$bin_path" ]; then
+              echo "::error::Could not locate compiled firmware for $config"
+              exit 1
+            fi
+
+            cp "$bin_path" "artifacts/${name}.bin"
+            echo "Copied $bin_path -> artifacts/${name}.bin"
+          done
+          ls -la artifacts
+
+      - name: Determine release tag
+        id: tag
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=build-$(date +'%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: ${{ steps.tag.outputs.tag }}
+          files: artifacts/*.bin
+          generate_release_notes: true
