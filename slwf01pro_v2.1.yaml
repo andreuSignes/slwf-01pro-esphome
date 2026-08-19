@@ -58,8 +58,10 @@ api:
           temperature: !lambda "return temperature;"
           use_fahrenheit: true
           beeper: false
-# Required by the http_request update platform
+# Required by the http_request update platform.
+# ESP8266 has no RAM for CA certs, so SSL verification is disabled.
 http_request:
+  verify_ssl: false
 
 ota:
   - platform: esphome
