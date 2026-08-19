@@ -58,8 +58,20 @@ api:
           temperature: !lambda "return temperature;"
           use_fahrenheit: true
           beeper: false
+# Required by the http_request update platform
+http_request:
+
 ota:
   - platform: esphome
+  - platform: http_request
+    id: ota_http_request
+
+# Auto-update check from the manifest at the repo root (see manifest.json)
+update:
+  - platform: http_request
+    name: ${friendly_name} Firmware Update
+    ota_id: ota_http_request
+    source: https://raw.githubusercontent.com/smlight-tech/slwf-01pro-esphome/main/manifest.json
 
 uart:
   tx_pin: 12
