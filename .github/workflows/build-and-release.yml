@@ -68,7 +68,6 @@ jobs:
 
       - name: Generate OTA manifests
         run: |
-          mkdir -p manifests
           for config in *.yaml; do
             name=$(basename "$config" .yaml)
             bin_path="artifacts/${name}.bin"
@@ -76,6 +75,18 @@ jobs:
               echo "::warning::No compiled binary for $config, skipping manifest"
               continue
             fi
+            # Map yaml name -> legacy manifest filename. The repo root
+            # is the canonical contract: HA's update: http_request and
+            # the SMLIGHT web flasher both read manifest.json / manifest_v1.1.json
+            # from the root. Keep these names stable.
+            case "$name" in
+              slwf01pro_v2.1) manifest_name="manifest" ;;
+              slwf01pro_v1.1) manifest_name="manifest_v1.1" ;;
+              *)
+                echo "::warning::No manifest mapping for $config, skipping"
+                continue
+                ;;
+            esac
             # Pull version from the yaml's project: block so the maintainer
             # controls the schema version in one place (the yaml itself).
             version=$(grep -A 5 'project:' "$config" | grep -E 'version:' | head -1 | sed -E 's/.*version:[[:space:]]*"?([^"]+)"?.*/\1/')
@@ -84,8 +95,8 @@ jobs:
               continue
             fi
             md5=$(md5sum "$bin_path" | awk '{print $1}')
-            echo "  ${name}: version=${version}, md5=${md5}"
-            cat > "manifests/${name}.json" <<EOF
+            echo "  ${manifest_name}.json: version=${version}, md5=${md5}"
+            cat > "${manifest_name}.json" <<EOF
           {
             "name": "SMLIGHT.SLWF-01Pro",
             "version": "${version}",
@@ -103,7 +114,7 @@ jobs:
           }
           EOF
           done
-          ls -la manifests
+          ls -la *.json
 
       - name: Create release
         uses: softprops/action-gh-release@v2
@@ -112,14 +123,15 @@ jobs:
           name: ${{ steps.tag.outputs.tag }}
           files: |
             artifacts/*.bin
-            manifests/*.json
+            manifest.json
+            manifest_v1.1.json
           generate_release_notes: true
 
       - name: Commit manifests to main
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add manifests/*.json
+          git add manifest.json manifest_v1.1.json
           if git diff --cached --quiet; then
             echo "No manifest changes to commit"
           else
