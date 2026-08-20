@@ -66,10 +66,63 @@ jobs:
             echo "tag=build-$(date +'%Y%m%d%H%M%S')" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Generate OTA manifests
+        run: |
+          mkdir -p manifests
+          for config in *.yaml; do
+            name=$(basename "$config" .yaml)
+            bin_path="artifacts/${name}.bin"
+            if [ ! -f "$bin_path" ]; then
+              echo "::warning::No compiled binary for $config, skipping manifest"
+              continue
+            fi
+            # Pull version from the yaml's project: block so the maintainer
+            # controls the schema version in one place (the yaml itself).
+            version=$(grep -A 5 'project:' "$config" | grep -E 'version:' | head -1 | sed -E 's/.*version:[[:space:]]*"?([^"]+)"?.*/\1/')
+            if [ -z "$version" ]; then
+              echo "::warning::No project: version in $config, skipping manifest"
+              continue
+            fi
+            md5=$(md5sum "$bin_path" | awk '{print $1}')
+            echo "  ${name}: version=${version}, md5=${md5}"
+            cat > "manifests/${name}.json" <<EOF
+          {
+            "name": "SMLIGHT.SLWF-01Pro",
+            "version": "${version}",
+            "builds": [
+              {
+                "chipFamily": "ESP8266",
+                "ota": {
+                  "md5": "${md5}",
+                  "path": "https://github.com/smlight-tech/slwf-01pro-esphome/releases/download/${{ steps.tag.outputs.tag }}/${name}.bin",
+                  "release_url": "https://github.com/smlight-tech/slwf-01pro-esphome/releases/tag/${{ steps.tag.outputs.tag }}",
+                  "summary": "SMLIGHT SLWF-01Pro ${name} firmware"
+                }
+              }
+            ]
+          }
+          EOF
+          done
+          ls -la manifests
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ steps.tag.outputs.tag }}
-          files: artifacts/*.bin
+          files: |
+            artifacts/*.bin
+            manifests/*.json
           generate_release_notes: true
+
+      - name: Commit manifests to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add manifests/*.json
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit"
+          else
+            git commit -m "chore: regenerate OTA manifests for ${{ steps.tag.outputs.tag }}"
+            git push
+          fi

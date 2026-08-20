@@ -1,5 +1,16 @@
 ## This repository contains ESPHome yaml configs for SLWF-01pro v1.1 and v2.1 devices.
 
+## Automatic firmware updates via Home Assistant
+
+Both `slwf01pro_v2.1.yaml` and `slwf01pro_v1.1.yaml` are configured with the ESPHome
+[`update: http_request`](https://esphome.io/components/update/http_request/) component.
+Once a device is added to Home Assistant, it polls the manifest at the repo root
+every 6 hours and surfaces an "Update available" badge in
+**Settings → Devices & Services → SLWF-01Pro → Update** whenever a new release ships.
+Click install and HA flashes the firmware over HTTP — no manual reflash required.
+
+The web flasher and USB-C flashing paths below remain available as fallbacks.
+
 ## How to distinguish between versions?
 Version v2.1 has an additional Type-C port.
 
