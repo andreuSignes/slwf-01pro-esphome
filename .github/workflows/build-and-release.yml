@@ -105,8 +105,8 @@ jobs:
                 "chipFamily": "ESP8266",
                 "ota": {
                   "md5": "${md5}",
-                  "path": "https://github.com/smlight-tech/slwf-01pro-esphome/releases/download/${{ steps.tag.outputs.tag }}/${name}.bin",
-                  "release_url": "https://github.com/smlight-tech/slwf-01pro-esphome/releases/tag/${{ steps.tag.outputs.tag }}",
+                  "path": "https://github.com/${{ github.repository }}/releases/download/${{ steps.tag.outputs.tag }}/${name}.bin",
+                  "release_url": "https://github.com/${{ github.repository }}/releases/tag/${{ steps.tag.outputs.tag }}",
                   "summary": "SMLIGHT SLWF-01Pro ${name} firmware"
                 }
               }
