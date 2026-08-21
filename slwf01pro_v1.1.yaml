@@ -38,7 +38,7 @@ update:
   - platform: http_request
     name: Air Conditioner Firmware Update
     ota_id: ota_http_request
-    source: https://raw.githubusercontent.com/smlight-tech/slwf-01pro-esphome/main/manifest_v1.1.json
+    source: https://raw.githubusercontent.com/andreuSignes/slwf-01pro-esphome/main/manifest_v1.1.json
 
 uart:
   tx_pin: 1
