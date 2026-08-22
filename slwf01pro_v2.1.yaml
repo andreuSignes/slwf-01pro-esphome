@@ -49,7 +49,7 @@ logger:
 
 # Enable Home Assistant API
 api:
-  services:
+  actions:
     - service: follow_me
       variables:
         temperature: float
