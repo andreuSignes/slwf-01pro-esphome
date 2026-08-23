@@ -25,8 +25,11 @@ api:
 
 # Required by the http_request update platform.
 # ESP8266 has no RAM for CA certs, so SSL verification is disabled.
+# tls_buffer_size_rx: 16384 is required because GitHub's TLS certificate chain
+# exceeds the default 512-byte buffer, causing BR_ERR_TOO_LARGE on BearSSL.
 http_request:
   verify_ssl: false
+  tls_buffer_size_rx: 16384
 
 ota:
   - platform: esphome
