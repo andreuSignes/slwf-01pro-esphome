@@ -1,0 +1,82 @@
+name: Validate ESPHome Configs
+
+# Fast validation for pull requests and main branch updates.
+# Compiles without flashing: catches schema/config errors in ~2 min.
+# Full firmware build + release is handled by build-and-release.yml on main.
+
+on:
+  pull_request:
+    paths:
+      - "*.yaml"
+      - ".github/workflows/**"
+      - ".yamllint"
+  push:
+    branches: [main]
+    paths:
+      - "*.yaml"
+      - ".github/workflows/**"
+      - ".yamllint"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install esphome and yamllint
+        run: pip install esphome yamllint
+
+      # Cache ESPHome / PlatformIO packages so the config step does not
+      # re-download them on every run. Speeds up runs from ~5 min to ~30s
+      # after the first warm-up.
+      - name: Cache ESPHome packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            .esphome/.platformio_cache
+            .esphome/.platformio_packages
+          key: ${{ runner.os }}-esphome-pio-${{ hashFiles('*.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-esphome-pio-
+
+      - name: yamllint (ESPHome configs and workflows)
+        run: |
+          yamllint -c .yamllint \
+            slwf01pro_v1.1.yaml \
+            slwf01pro_v2.1.yaml \
+            .github/workflows/*.yml
+
+      # `esphome config` resolves substitutions, validates the config schema
+      # against the device component graph, and downloads platform packages
+      # for resolution, but does NOT compile C++ or flash. This is the right
+      # gate for PRs: fast feedback on YAML breakage before reviewers even
+      # look. Failures here used to slip through to PR #8 (TLS buffer fix)
+      # because the old workflow only ran on push to main.
+      - name: esphome config (validate yamls without compiling)
+        run: |
+          status=0
+          for config in slwf01pro_v1.1.yaml slwf01pro_v2.1.yaml; do
+            echo "::group::Validating $config"
+            if ! esphome config "$config"; then
+              echo "::error::esphome config failed for $config"
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status
