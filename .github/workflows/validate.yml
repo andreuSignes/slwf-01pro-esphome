@@ -36,7 +36,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v7
         with:
-          python-version: "3.11"
+          # Python 3.12+ is required by ESPHome 2026.7+ (the version the
+          # devices in the field are running). With 3.11 the pinned
+          # `esphome>=2026.7,<2027` resolves to nothing because every
+          # 2026.7.x wheel declares Requires-Python >=3.12.
+          python-version: "3.12"
           cache: "pip"
 
       # Install from requirements.txt (NOT bare `pip install esphome yamllint`).
