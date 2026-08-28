@@ -1,0 +1,79 @@
+name: Validate ESPHome Configs
+
+# Fast validation for pull requests and main branch updates.
+# Compiles without flashing: catches schema/config errors in ~2 min.
+# Full firmware build + release is handled by build-and-release.yml on main.
+
+on:
+  pull_request:
+    paths:
+      - "*.yaml"
+      - ".github/workflows/**"
+      - ".yamllint"
+  push:
+    branches: [main]
+    paths:
+      - "*.yaml"
+      - ".github/workflows/**"
+      - ".yamllint"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          # Python 3.12+ is required by ESPHome 2026.7+ (the version the
+          # devices in the field are running). With 3.11 the pinned
+          # `esphome>=2026.7,<2027` resolves to nothing because every
+          # 2026.7.x wheel declares Requires-Python >=3.12.
+          python-version: "3.12"
+          cache: "pip"
+
+      # Install from requirements.txt (NOT bare `pip install esphome yamllint`).
+      # The bare form ignores the version pins in requirements.txt and resolves
+      # to whatever happens to be latest on PyPI at run time, which is what
+      # caused run 32876207966 to install esphome 2026.6.5 despite the
+      # `>=2026.7,<2027` pin in this file. requirements.txt doubles as the
+      # cache key for setup-python@v7, so it MUST be read by pip as well.
+      - name: Install dependencies from requirements.txt
+        run: pip install -r requirements.txt
+
+      - name: yamllint (ESPHome configs and workflows)
+        run: |
+          yamllint -c .yamllint \
+            slwf01pro_v1.1.yaml \
+            slwf01pro_v2.1.yaml \
+            .github/workflows/*.yml
+
+      # `esphome config` resolves substitutions, validates the config schema
+      # against the device component graph, and downloads platform packages
+      # for resolution, but does NOT compile C++ or flash. This is the right
+      # gate for PRs: fast feedback on YAML breakage before reviewers even
+      # look. Failures here used to slip through to PR #8 (TLS buffer fix)
+      # because the old workflow only ran on push to main.
+      - name: esphome config (validate yamls without compiling)
+        run: |
+          status=0
+          for config in slwf01pro_v1.1.yaml slwf01pro_v2.1.yaml; do
+            echo "::group::Validating $config"
+            if ! esphome config "$config"; then
+              echo "::error::esphome config failed for $config"
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status

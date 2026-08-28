@@ -1,0 +1,40 @@
+extends: default
+
+# This config is permissive on purpose. The goal is to catch REAL bugs in new
+# PRs (bad substitutions, wrong indentation in new blocks, broken includes)
+# without breaking the build for pre-existing style nits in the legacy
+# ESPHome configs that ship in this repo. Tweak as the codebase matures.
+
+rules:
+  # ESPHome configs routinely exceed 80 cols.
+  line-length: disable
+
+  # ESPHome configs do not start with `---`.
+  document-start: disable
+
+  # Legacy configs have inherited trailing spaces; not breaking.
+  trailing-spaces: disable
+
+  # Some files lack a final newline; not breaking.
+  new-line-at-end-of-file: disable
+
+  # ESPHome uses `on:` / `off:` as keys and values.
+  truthy:
+    allowed-values: ['true', 'false', 'on', 'off', 'yes', 'no']
+
+  # Legacy configs mix indentation styles in places (esp8266: blocks,
+  # midea: lists, ota: blocks). Disable the rule entirely; yamllint still
+  # catches syntax errors (unmatched braces, bad quotes, duplicate keys).
+  comments-indentation: disable
+  indentation: disable
+
+  # Some legacy blocks are commented-out with `#key:` (no space after #).
+  # Allow that so we don't fail on pre-existing commented blocks.
+  comments:
+    require-starting-space: false
+    min-spaces-from-content: 1
+
+  # Block scalars in substitutions are common.
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 1
