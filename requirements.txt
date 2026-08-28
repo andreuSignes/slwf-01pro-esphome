@@ -1,0 +1,4 @@
+# CI validation dependencies. Pinned to current stable major versions.
+# Used by .github/workflows/validate.yml to cache pip downloads.
+yamllint>=1.38,<2
+esphome>=2026.7,<2027
