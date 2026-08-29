@@ -95,11 +95,17 @@ jobs:
               continue
             fi
             md5=$(md5sum "$bin_path" | awk '{print $1}')
-            echo "  ${manifest_name}.json: version=${version}, md5=${md5}"
+            echo "  ${manifest_name}.json: version=${version}+${{ steps.tag.outputs.tag }}, md5=${md5}"
+            # Append the release tag as semver build metadata so every
+            # release produces a unique version string. ESPHome's
+            # update: http_request compares version strings (not MD5),
+            # so this guarantees devices always see an update when a new
+            # release is published, even if the maintainer's yaml version
+            # did not change between PRs.
             cat > "${manifest_name}.json" <<EOF
           {
             "name": "SMLIGHT.SLWF-01Pro",
-            "version": "${version}",
+            "version": "${version}+${{ steps.tag.outputs.tag }}",
             "builds": [
               {
                 "chipFamily": "ESP8266",
