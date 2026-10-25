@@ -13,7 +13,6 @@
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "rangeStrategy": "bump",
-  "commitMessageExtra": "Renovate dependency update. Not auto-merged: review the changelog and the compile result before merging.",
   "packageRules": [
     {
       "matchManagers": ["pip_requirements"],
@@ -24,8 +23,7 @@
       "ignoreUnstable": true,
       "minimumReleaseAge": "7 days",
       "semanticCommitType": "chore",
-      "semanticCommitScope": "deps",
-      "description": "ESPHome release used to build the firmware. A new minor may contain breaking changes to the midea or esp8266 components, so this is never auto-merged and always needs a human review plus a compile check."
+      "semanticCommitScope": "deps"
     },
     {
       "matchManagers": ["pip_requirements"],

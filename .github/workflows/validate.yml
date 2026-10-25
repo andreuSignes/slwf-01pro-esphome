@@ -27,9 +27,6 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # Compiling both ESP8266 configs downloads the toolchain and takes
-    # several minutes on a cold cache, so this needs more headroom than a
-    # schema-only validation.
     timeout-minutes: 30
 
     steps:
@@ -81,17 +78,9 @@ jobs:
           done
           exit $status
 
-      # `esphome config` only checks the schema; it never builds C++. A new
-      # ESPHome release can break compilation (the midea, uart and esp8266
-      # components are all compiled from upstream sources) while still
-      # passing the schema check above. Without this step, a broken ESPHome
-      # bump would be merged to main, where build-and-release.yml would then
-      # publish the firmware and regenerate the OTA manifest that the
-      # devices in the field poll every 6 hours.
-      #
-      # `esphome compile` builds the firmware but does not flash it, so this
-      # is safe to run on pull requests. Each config builds into its own
-      # directory, so there is no need to clear .esphome/build between them.
+      # `esphome config` never builds C++, so a broken ESPHome bump would
+      # pass it and only fail on main, after the OTA manifest was
+      # regenerated. `esphome compile` builds without flashing.
       - name: esphome compile (build firmware without flashing)
         run: |
           status=0
