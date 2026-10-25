@@ -1,0 +1,48 @@
+name: Renovate
+
+# Keeps ESPHome, yamllint and the pinned GitHub Actions up to date.
+#
+# Renovate only ever opens pull requests; it never merges. The esphome
+# upgrade in particular must be reviewed by a human, because a new ESPHome
+# minor can change the generated firmware for the devices in the field.
+# The `Validate ESPHome Configs` workflow runs on those pull requests and
+# compiles both configs, so a broken upgrade fails the PR instead of
+# reaching the OTA manifest.
+
+on:
+  schedule:
+    # Mondays at 05:00 UTC. Renovate groups everything discovered in one
+    # run into a single set of pull requests.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  checks: write
+
+concurrency:
+  group: renovate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    name: renovate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run Renovate
+        uses: renovatebot/github-action@v46
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Renovate needs a token with write access to open pull requests
+          # and to update the dependency dashboard issue.
+          renovate-token: ${{ secrets.GITHUB_TOKEN }}
+          # Do not let Renovate touch the ESPHome device configs or the OTA
+          # manifests. Only dependency files are in scope. ignorePaths takes
+          # a single glob string; multiple paths are separated with spaces.
+          ignorePaths: "**/slwf01pro_*.yaml **/manifest*.json"

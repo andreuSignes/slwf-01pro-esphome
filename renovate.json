@@ -1,0 +1,41 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":dependencyDashboard",
+    ":semanticCommits"
+  ],
+  "schedule": ["before 5am on monday"],
+  "dependencyDashboardTitle": "Dependency Dashboard",
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": true,
+  "prCreation": "status-success",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "bump",
+  "packageRules": [
+    {
+      "matchManagers": ["pip_requirements"],
+      "matchPackageNames": ["esphome"],
+      "versioning": "pep440",
+      "rangeStrategy": "bump",
+      "separateMajorMinor": false,
+      "ignoreUnstable": true,
+      "minimumReleaseAge": "7 days",
+      "labels": ["dependencies", "firmware"],
+      "description": "ESPHome release used to build the firmware. A new minor may contain breaking changes to the midea or esp8266 components, so this is never auto-merged and always needs a human review plus a compile check."
+    },
+    {
+      "matchManagers": ["pip_requirements"],
+      "matchPackageNames": ["yamllint"],
+      "versioning": "pep440",
+      "rangeStrategy": "bump",
+      "ignoreUnstable": true,
+      "labels": ["dependencies"]
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "labels": ["dependencies", "ci"]
+    }
+  ]
+}

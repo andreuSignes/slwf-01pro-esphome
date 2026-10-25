@@ -1,4 +1,24 @@
-# CI validation dependencies. Pinned to current stable major versions.
-# Used by .github/workflows/validate.yml to cache pip downloads.
+# CI validation dependencies.
+# Used by .github/workflows/validate.yml to cache pip downloads, and by
+# build-and-release.yml to produce the released firmware.
+#
+# The esphome range is a ROLLING MINOR WINDOW, not a floating major range.
+# It exists so that Renovate proposes exactly one esphome upgrade at a time
+# and every upgrade lands as a reviewed pull request.
+#
+# Why a rolling window and not ">=2026.10,<2027":
+#   The upper bound of a rolling window must track the minor version, because
+#   the minor version IS the upgrade unit here. ESPHome uses calendar
+#   versioning (YYYY.M.P), so 2026.10.0 and 2026.11.0 are different minors
+#   and may contain breaking changes. A "<2027" bound would let every future
+#   2026.x release install itself with no review at all, which means the
+#   firmware pushed to the devices would change without anyone looking.
+#
+#   Do NOT widen this back to a year-wide upper bound. Renovate is configured
+#   with rangeStrategy "bump" for esphome, which moves the lower bound and the
+#   upper bound together on each new minor release.
+#
+# Python requirement: esphome 2026.7+ requires Python >=3.12,<3.15.
+# Both workflows pin python-version 3.12 for this reason.
 yamllint>=1.38,<2
-esphome>=2026.7,<2027
+esphome>=2026.10.0,<2026.11
